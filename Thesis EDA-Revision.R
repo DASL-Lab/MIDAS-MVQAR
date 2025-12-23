@@ -92,7 +92,7 @@ for (col in colnames(des_stat)) {
   print(summary(ur.kpss(des_stat[,col], type = "tau", lags = "short")))
 }
 
-# Taking log and differencing (Low frequency variables) for stationarity
+# Taking differencing (Low frequency variables) for stationarity
 cpi_lf_diff   <- diff(des_stat$CPI, 1)
 nhpi_lf_diff  <- diff(des_stat$NHPI, 1)
 ir_lf_diff  <- diff(des_stat$IR, 1)   
@@ -104,7 +104,7 @@ lf_stationary <- na.omit(data.frame(
   NHPI = nhpi_lf_diff
 ))
 
-# # Taking log and differencing (high frequency variables) for stationarity 
+# # Taking differencing (high frequency variables) for stationarity 
 gscpi_hf_diff <- diff(des_stat$GSCPI, 1)
 ippi_hf_diff <- diff(des_stat$IPPI, 1)  
 epi_hf_diff  <- diff(des_stat$EPI, 1) 
@@ -199,7 +199,7 @@ ts_list <- list(
 )
 
 
-# Function to analyze a single time series
+# Function to analyze a each time series
 analyze_ts <- function(ts_data, var_name, out_dir = "figs") {
   # Create output directory if it doesn't exist
   if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
