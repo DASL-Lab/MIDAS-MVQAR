@@ -14,6 +14,7 @@ suppressPackageStartupMessages({
 source("functions.R")
 
 ##Set Parameters in an easy place to change
+set.seed(123)
 m <- 3
 K <- 4
 p <- 1
@@ -90,7 +91,7 @@ res_df <- res |> as.data.frame() |>
     eq = str_extract(name, "eq(\\d)", group = TRUE),
     var = case_when(
       str_detect(name, "ippi") ~ "IPPI",
-      str_detect(name, "gcspi") ~ "GSCPI",
+      str_detect(name, "gscpi") ~ "GSCPI",
       str_detect(name, "epi") ~ "EPI",
       str_detect(name, "cpi") ~ "CPI",
       str_detect(name, "ir") ~ "IR",
@@ -121,16 +122,67 @@ res_sim <- filter(res_df, sim != "truth")
 res_tru <- filter(res_df, sim == "truth")
 
 gg_box <- ggplot() +
-  geom_boxplot( # also try geom_density_ridges(
+  geom_boxplot(
     data = res_sim,
-    mapping = aes(x = value, y = param2)
+    mapping = aes(x = value, y = param2, colour = "Simulated")
   ) +
-  facet_wrap(is_theta ~ eq, scales = "free", labeller = label_both) +
   geom_point(
     data = res_tru,
-    mapping = aes(x = value, y = param2),
-    colour = "red", shape = "|", size = 10
+    mapping = aes(x = value, y = param2, colour = "True value"),
+    shape = "|", size = 5
   ) +
-  coord_cartesian(xlim = c(-1.5, 1.5))
+  facet_wrap(is_theta ~ eq, scales = "free", labeller = label_both) +
+  coord_cartesian(xlim = c(-1.5, 1.5)) +
+  scale_colour_manual(
+    name = "",
+    values = c("Simulated" = "black", "True value" = "red")
+  ) +
+  theme(legend.position = "right")
 print(gg_box)
+
+
+params <- extract_params(fits_sim, p)
+
+cat("\n=== ESTIMATED PARAMETERS ===\n")
+for (tau_name in names(params)) {
+  cat("\nResults for", tau_name, ":\n")
+  cat("Convergence:", params[[tau_name]]$convergence, " Loss:", round(params[[tau_name]]$loss, 6), "\n")
+  cat("Equation 1 (CPI):\n"); print(round(params[[tau_name]]$eq1_params, 4))
+  cat("\nEquation 2 (Interest Rate):\n"); print(round(params[[tau_name]]$eq2_params, 4))
+  cat("\nEquation 3 (NHPI):\n"); print(round(params[[tau_name]]$eq3_params, 4))
+  cat("Time taken:", round(params[[tau_name]]$elapsed_minutes, 2), "minutes\n")
+}
+
+diagnostic_results <- diagnose_parameter_recovery(params, true_par, p, abs_floor = 5e-3)
+
+
+cat("\n=== SUMMARY TABLE (All Metrics in %) ===\n")
+summary_table <- data.frame()
+abs_floor = 5e-3 # Define abs_floor for consistency with MAPE/MdAPE calculation
+for (tau_name in names(params)) {
+  est <- c(params[[tau_name]]$eq1_params, params[[tau_name]]$eq2_params, params[[tau_name]]$eq3_params)
+  tru <- true_par
+  # Absolute Error (ae)
+  ae <- abs(est - tru)
+  # Mean Absolute Error (MAE)
+  mae <- mean(ae, na.rm = TRUE)
+  # Absolute Percentage Error (APE)
+  ape <- ae / pmax(abs(tru), abs_floor) * 100
+  # Symmetric Mean Absolute Percentage Error (SMAPE)
+  # Formula: 100% * mean( |est - tru| / (|est| + |tru|) )
+  smape <- mean(abs(est - tru) / (abs(est) + abs(tru)), na.rm = TRUE) * 100
+  summary_table <- rbind(summary_table, data.frame(
+    Quantile = tau_name,
+    Convergence = params[[tau_name]]$convergence,
+    Loss = round(params[[tau_name]]$loss, 6),
+    # Added MAE and SMAPE
+    RMSE = sprintf("%.3f", sqrt(mean((est - tru)^2, na.rm = TRUE))),
+    MAE = sprintf("%.3f", mae), 
+    MAPE = sprintf("%.2f%%", mean(ape, na.rm = TRUE)),
+    MdAPE = sprintf("%.2f%%", median(ape, na.rm = TRUE)),
+    SMAPE = sprintf("%.2f%%", smape),
+    Time_Minutes = round(params[[tau_name]]$elapsed_minutes, 2)
+  ))
+}
+print(summary_table, row.names = FALSE)
 
