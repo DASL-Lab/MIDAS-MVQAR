@@ -60,81 +60,96 @@ almon_weight_gradient <- function(j, theta1, theta2, K, eps2 = 5e-3) {
   ))
 }
 
-create_true_par_vector <- function(p) {
+#' Create parameter vector for use in simulation
+#' 
+#' Parameter set 1 is the set used in the thesis. Parameter set 2 is bigger values, especially for more recent observations. Parameter set 3 is bigger values for less recent observations. Parameter set 4 is a mix of negative and positive values, generated from a standard normal distribution.
+create_true_par_vector <- function(p, param_set = 1) {
   n_params_eq1 <- 1 + 3 * p + 9
   n_params_eq2 <- 2 + 3 * p + 9
   n_params_eq3 <- 3 + 3 * p + 9
 
   # Equation 1: CPI
   par_eq1 <- c(
-    eq1_alpha = 0.3, #intercept
+    eq1_alpha = c(0.3, 3, 3, -0.56)[param_set],
     if (p > 0) {
-      c(eq1_phi1 = 0.6, eq1_phi2 = 0.08, eq1_phi3 = -0.06)
+      c(
+        eq1_phi1 = c(0.6, 0.8, 0.005, -0.23)[param_set],
+        eq1_phi2 = c(0.08, 0.01, 0.01, 1.55)[param_set],
+        eq1_phi3 = c(-0.06, 0.005, 0.8, 0.07)[param_set]
+      )
     } else {
       numeric(0) # Cross-lags: [cpi_lag1, ir_lag1, nhpi_lag1] for p=1
     },
 
     # MIDAS scales
-    eq1_midas_scale_gscpi = 0.45,
-    eq1_midas_scale_ippi = 0.15,
-    eq1_midas_scale_epi = 0.08,
+    eq1_midas_scale_gscpi = c(0.45, 0.85, 0.75, 0.13)[param_set],
+    eq1_midas_scale_ippi = c(0.15, 0.85, 0.75, 1.72)[param_set],
+    eq1_midas_scale_epi = c(0.08, 0.85, 0.75, 0.46)[param_set],
 
     # theta parameters for each predictor
-    eq1_theta1_gscpi = -0.25,
-    eq1_theta2_gscpi = 0.035,
-    eq1_theta1_ippi = -0.12,
-    eq1_theta2_ippi = 0.018,
-    eq1_theta1_epi = -0.18,
-    eq1_theta2_epi = 0.025
+    eq1_theta1_gscpi = c(-0.25, 0.55, 0.035, -1.27)[param_set],
+    eq1_theta2_gscpi = c(0.035, 0.035, 0.55, -0.69)[param_set],
+    eq1_theta1_ippi = c(-0.12, 0.42, 0.018, -0.44)[param_set],
+    eq1_theta2_ippi = c(0.018, 0.018, 0.42, 1.22)[param_set],
+    eq1_theta1_epi = c(-0.18, 0.78, 0.025, 0.36)[param_set],
+    eq1_theta2_epi = c(0.025, 0.025, 0.78, 0.40)[param_set]
   )
 
   # Equation 2: IR
   par_eq2 <- c(
-    eq2_alpha = 0.2, # intercept
-    eq2_phi_contemp = 0.35, # contemporaneous CPI effect
+    eq2_alpha = c(0.2, -4, -4, 0.2)[param_set],
+    eq2_phi_contemp = c(0.35, 1.35, 1.35, 0.11)[param_set],
     if (p > 0) {
-      c(eq2_phi1 = 0.05, eq2_phi2 = 0.55, eq2_phi3 = 0.04)
+      c(
+        eq2_phi1 = c(0.05, 0.50, 0.01, -0.56)[param_set],
+        eq2_phi2 = c(0.55, 0.05, 0.05, 1.79)[param_set],
+        eq2_phi3 = c(0.04, 0.01, 0.50, 0.50)[param_set]
+      )
     } else {
       numeric(0) # Cross-lags: [cpi_lag1, ir_lag1, nhpi_lag1] for p=1
     },
 
     # MIDAS scales
-    eq2_midas_scale_gscpi = 0.12,
-    eq2_midas_scale_ippi = -0.38,
-    eq2_midas_scale_epi = 0.08,
+    eq2_midas_scale_gscpi = c(0.12, 0.67, 0.67, -1.97)[param_set],
+    eq2_midas_scale_ippi = c(0.38, 0.67, 0.67, 0.70)[param_set],
+    eq2_midas_scale_epi = c(0.08, 0.67, 0.67, -0.47)[param_set],
 
     # theta parameters for each predictor
-    eq2_theta1_gscpi = 0.15,
-    eq2_theta2_gscpi = -0.022,
-    eq2_theta1_ippi = 0.22,
-    eq2_theta2_ippi = -0.032,
-    eq2_theta1_epi = 0.10,
-    eq2_theta2_epi = -0.015
+    eq2_theta1_gscpi = c(0.15, 0.55, 0.022, -1.06)[param_set],
+    eq2_theta2_gscpi = c(-0.022, 0.022, 0.55, -0.22)[param_set],
+    eq2_theta1_ippi = c(0.22, 0.62, 0.032, -1.03)[param_set],
+    eq2_theta2_ippi = c(-0.032, 0.032, 0.62, -0.73)[param_set],
+    eq2_theta1_epi = c(0.10, 0.50, 0.015, -0.63)[param_set],
+    eq2_theta2_epi = c(-0.015, 0.015, 0.50, 1.69)[param_set]
   )
 
   #Equation 3: NHPI
   par_eq3 <- c(
-    eq3_alpha = 0.25, #intercept
-    eq3_phi_contemp_cpi = 0.28,
-    eq3_phi_contemp_ir = -0.22, # contemporaneous CPI and IR effect
+    eq3_alpha = c(0.25, 6, 6, 0.25)[param_set],
+    eq3_phi_contemp_cpi = c(0.28, 0.9, 0.9, 0.83)[param_set],
+    eq3_phi_contemp_ir = c(-0.22, 0.6, 0.6, 0.15)[param_set],
     if (p > 0) {
-      c(eq3_phi1 = 0.06, eq3_phi2 = -0.07, eq3_phi3 = 0.48)
+      c(
+        eq3_phi1 = c(0.06, 0.88, 0.01, -1.14)[param_set],
+        eq3_phi2 = c(-0.07, 0.10, 0.10, 1.25)[param_set],
+        eq3_phi3 = c(0.48, 0.01, 0.88, 0.43)[param_set]
+      )
     } else {
       numeric(0) # Cross-lags: [cpi_lag1, ir_lag1, nhpi_lag1] for p=1
     },
 
     # MIDAS scales
-    eq3_midas_scale_gscpi = 0.10,
-    eq3_midas_scale_ippi = 0.18,
-    eq3_midas_scale_epi = -0.32,
+    eq3_midas_scale_gscpi = c(0.10, 0.78, 0.78, -0.30)[param_set],
+    eq3_midas_scale_ippi = c(0.18, 0.78, 0.78, 0.90)[param_set],
+    eq3_midas_scale_epi = c(-0.32, 0.78, 0.78, 0.88)[param_set],
 
     # theta parameters for each predictor
-    eq3_theta1_gscpi = 0.20,
-    eq3_theta2_gscpi = -0.028,
-    eq3_theta1_ippi = 0.14,
-    eq3_theta2_ippi = -0.020,
-    eq3_theta1_epi = 0.25,
-    eq3_theta2_epi = -0.038
+    eq3_theta1_gscpi = c(0.20, 0.70, 0.028, 0.82)[param_set],
+    eq3_theta2_gscpi = c(-0.028, 0.028, 0.70, 0.69)[param_set],
+    eq3_theta1_ippi = c(0.14, 0.75, 0.01, 0.55)[param_set],
+    eq3_theta2_ippi = c(-0.020, 0.01, 0.75, -0.06)[param_set],
+    eq3_theta1_epi = c(0.25, 0.75, 0.01, -0.305)[param_set],
+    eq3_theta2_epi = c(-0.038, 0.01, 0.75, -0.38)[param_set]
   )
 
   true_par <- c(par_eq1, par_eq2, par_eq3)
